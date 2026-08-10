@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chào Tân Sinh Viên K19</title>
+<style>
+*{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#eef7ff;color:#083b78}
+.wrap{max-width:620px;margin:auto;padding:22px;text-align:center}
+h1{margin:4px 0 6px;font-size:30px} p{margin:0 0 18px}
+.stage{position:relative;width:min(92vw,560px);aspect-ratio:1;margin:auto;overflow:hidden;background:#fff;border-radius:22px;box-shadow:0 8px 30px #0b4d8c22;touch-action:none}
+#photo{position:absolute;left:50%;top:50%;max-width:none;display:none;user-select:none;pointer-events:none}
+#frame{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none}
+.controls{margin-top:18px;display:grid;gap:12px}
+button,.pick{border:0;border-radius:12px;padding:14px 18px;font-size:16px;font-weight:700;cursor:pointer}
+.pick{background:#1268d3;color:white;display:inline-block}
+button{background:#ffcc35;color:#07396e}
+input[type=file]{display:none}
+.zoom{display:flex;align-items:center;gap:10px;justify-content:center}
+.zoom input{width:70%}
+small{display:block;margin-top:12px;color:#52708f}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>CHÀO TÂN SINH VIÊN K19</h1>
+<p>Chọn ảnh, kéo để căn vị trí và phóng to/thu nhỏ.</p>
+<div class="stage" id="stage">
+  <img id="photo" alt="">
+  <img id="frame" src="khung-k19.png" alt="Khung K19">
+</div>
+<div class="controls">
+<label class="pick">📷 CHỌN ẢNH CỦA BẠN<input id="file" type="file" accept="image/*"></label>
+<div class="zoom">Thu nhỏ <input id="zoom" type="range" min="0.5" max="3" value="1" step="0.01"> Phóng to</div>
+<button id="download">⬇ TẢI ẢNH ĐẠI DIỆN</button>
+</div>
+<small>Ảnh chỉ được xử lý trên thiết bị của bạn, không tải lên máy chủ.</small>
+</div>
+<canvas id="canvas" width="1200" height="1200" hidden></canvas>
+<script>
+const stage=document.getElementById('stage'), photo=document.getElementById('photo'),
+file=document.getElementById('file'), zoom=document.getElementById('zoom');
+let img=new Image(), scale=1, x=0, y=0, dragging=false, sx=0, sy=0, ox=0, oy=0;
+
+function render(){
+ if(!img.src)return;
+ photo.style.display='block';
+ photo.src=img.src;
+ const base=Math.max(stage.clientWidth/img.naturalWidth,stage.clientHeight/img.naturalHeight);
+ const s=base*scale;
+ photo.style.width=(img.naturalWidth*s)+'px';
+ photo.style.height=(img.naturalHeight*s)+'px';
+ photo.style.transform=`translate(calc(-50% + ${x}px),calc(-50% + ${y}px))`;
+}
+file.onchange=e=>{
+ const f=e.target.files[0]; if(!f)return;
+ const r=new FileReader();
+ r.onload=()=>{img.onload=()=>{scale=1;x=0;y=0;zoom.value=1;render()};img.src=r.result};
+ r.readAsDataURL(f);
+};
+zoom.oninput=()=>{scale=parseFloat(zoom.value);render()};
+stage.onpointerdown=e=>{if(!img.src)return;dragging=true;sx=e.clientX;sy=e.clientY;ox=x;oy=y;stage.setPointerCapture(e.pointerId)};
+stage.onpointermove=e=>{if(!dragging)return;x=ox+e.clientX-sx;y=oy+e.clientY-sy;render()};
+stage.onpointerup=()=>dragging=false; stage.onpointercancel=()=>dragging=false;
+window.onresize=render;
+
+document.getElementById('download').onclick=async()=>{
+ if(!img.src){alert('Bạn hãy chọn ảnh trước.');return}
+ const c=document.getElementById('canvas'),ctx=c.getContext('2d'), W=c.width,H=c.height;
+ ctx.clearRect(0,0,W,H); ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+ const base=Math.max(W/img.naturalWidth,H/img.naturalHeight), s=base*scale;
+ const ratio=W/stage.clientWidth;
+ const dw=img.naturalWidth*s, dh=img.naturalHeight*s;
+ ctx.drawImage(img,(W-dw)/2+x*ratio,(H-dh)/2+y*ratio,dw,dh);
+ const fr=new Image(); fr.src='khung-k19.png';
+ await fr.decode(); ctx.drawImage(fr,0,0,W,H);
+ const a=document.createElement('a');a.download='avatar-k19.png';a.href=c.toDataURL('image/png');a.click();
+};
+</script>
+</body>
+</html>
